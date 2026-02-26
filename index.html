@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🌶️ 고추 병해 진단기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #0f1a0f;
+    color: #e8f5e8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    padding: 28px 20px 16px;
+    text-align: center;
+    background: linear-gradient(180deg, #1a2e1a 0%, transparent 100%);
+  }
+  header h1 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #ff4444;
+    letter-spacing: -1px;
+  }
+  header p {
+    font-size: 0.85rem;
+    color: #7a9e7a;
+    margin-top: 6px;
+  }
+  .card {
+    width: 100%;
+    max-width: 480px;
+    margin: 20px 16px;
+    background: #1a2e1a;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid #2d4a2d;
+  }
+  .upload-area {
+    border: 2px dashed #2d4a2d;
+    border-radius: 16px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: #ff4444;
+    background: #1f3a1f;
+  }
+  .upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-icon { font-size: 3rem; margin-bottom: 12px; }
+  .upload-area h3 { font-size: 1rem; font-weight: 700; color: #c8e6c8; margin-bottom: 6px; }
+  .upload-area p { font-size: 0.8rem; color: #4a6e4a; }
+
+  #preview-wrap {
+    display: none;
+    margin-top: 16px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+  #preview-wrap img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    display: block;
+  }
+  #change-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  #analyze-btn {
+    width: 100%;
+    padding: 16px;
+    background: #ff4444;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    letter-spacing: -0.5px;
+  }
+  #analyze-btn:hover { background: #cc2222; transform: translateY(-1px); }
+  #analyze-btn:disabled { background: #3a4a3a; color: #5a7a5a; cursor: not-allowed; transform: none; }
+
+  #loading { display: none; text-align: center; padding: 24px; }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid #2d4a2d;
+    border-top-color: #ff4444;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { color: #7a9e7a; font-size: 0.9rem; }
+
+  #result { display: none; }
+
+  .result-badge {
+    display: inline-block;
+    background: #ff4444;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  .result-badge.healthy { background: #2e7d32; }
+
+  #result h2 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .result-section {
+    background: #0f1a0f;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 3px solid #ff4444;
+  }
+  .result-section.green { border-left-color: #4caf50; }
+  .result-section.yellow { border-left-color: #ffc107; }
+
+  .result-section h4 {
+    font-size: 0.75rem;
+    color: #7a9e7a;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .result-section p {
+    font-size: 0.9rem;
+    color: #c8e6c8;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  #retry-btn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: #7a9e7a;
+    border: 1px solid #2d4a2d;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+  #retry-btn:hover { border-color: #7a9e7a; color: #c8e6c8; }
+
+  .error-box {
+    background: #2a0f0f;
+    border: 1px solid #ff4444;
+    border-radius: 12px;
+    padding: 16px;
+    color: #ff8888;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .divider { height: 1px; background: #2d4a2d; margin: 20px 0; }
+  footer { padding: 20px; text-align: center; font-size: 0.75rem; color: #2d4a2d; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌶️ 고추 병해 진단기</h1>
+  <p>사진 한 장으로 병해를 알아보세요 (API 키 입력 필요 없음)</p>
+</header>
+
+<div class="card">
+  <div class="upload-area" id="upload-area">
+    <input type="file" id="file-input" accept="image/*" capture="environment" />
+    <div class="upload-icon">📸</div>
+    <h3>사진을 찍거나 선택하세요</h3>
+    <p>고추 잎, 줄기, 열매 사진을 올려주세요</p>
+  </div>
+
+  <div id="preview-wrap">
+    <img id="preview-img" src="" alt="미리보기" />
+    <button id="change-btn">🔄 바꾸기</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>AI가 사진을 분석 중이에요...</p>
+  </div>
+
+  <div id="result"></div>
+
+  <button id="analyze-btn" disabled>🔍 병해 진단하기</button>
+</div>
+
+<footer>고추 병해 진단기 · Netlify Functions + Claude</footer>
+
+<script>
+  const fileInput = document.getElementById('file-input');
+  const previewWrap = document.getElementById('preview-wrap');
+  const previewImg = document.getElementById('preview-img');
+  const analyzeBtn = document.getElementById('analyze-btn');
+  const changeBtn = document.getElementById('change-btn');
+  const loading = document.getElementById('loading');
+  const resultDiv = document.getElementById('result');
+  const uploadArea = document.getElementById('upload-area');
+
+  let selectedFile = null;
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    selectedFile = file;
+    previewImg.src = URL.createObjectURL(file);
+    previewWrap.style.display = 'block';
+    uploadArea.style.display = 'none';
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+    checkReady();
+  });
+
+  changeBtn.addEventListener('click', () => resetUI());
+
+  function resetUI() {
+    selectedFile = null;
+    fileInput.value = '';
+    previewWrap.style.display = 'none';
+    uploadArea.style.display = 'block';
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+    analyzeBtn.disabled = true;
+  }
+
+  function checkReady() {
+    analyzeBtn.disabled = !(selectedFile !== null);
+  }
+
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function safeJsonParse(text) {
+    // ```json ... ``` 제거
+    const clean = String(text || "").replace(/```json|```/g, "").trim();
+    // 혹시 앞/뒤에 잡문이 있으면 첫 { ~ 마지막 }만 잘라보기
+    const first = clean.indexOf("{");
+    const last = clean.lastIndexOf("}");
+    if (first !== -1 && last !== -1 && last > first) {
+      return JSON.parse(clean.slice(first, last + 1));
+    }
+    return JSON.parse(clean);
+  }
+
+  analyzeBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    analyzeBtn.style.display = 'none';
+    loading.style.display = 'block';
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+
+    try {
+      const base64 = await toBase64(selectedFile);
+      const mimeType = selectedFile.type || 'image/jpeg';
+
+      // ✅ Claude로 직접 가지 않고, Netlify 함수로 보냄
+      const response = await fetch('/.netlify/functions/diagnose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mimeType,
+          prompt: `이 사진은 고추 식물의 사진입니다. 병해를 진단해주세요.
+
+다음 형식으로 정확하게 답해주세요 (JSON):
+{
+  "병명": "병 이름 (건강하면 '건강한 상태')",
+  "상태": "위험" 또는 "주의" 또는 "건강",
+  "증상": "관찰된 증상 설명 (2-3문장)",
+  "원인": "병의 원인 (1-2문장)",
+  "대처법": "해결 방법 (2-3문장)"
+}
+
+JSON만 답하고 다른 말은 하지 마세요.`
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || "서버 오류가 발생했어요");
+      }
+
+      const text = data?.text || "";
+      const result = safeJsonParse(text);
+      showResult(result);
+
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      loading.style.display = 'none';
+      analyzeBtn.style.display = 'block';
+    }
+  });
+
+  function showResult(r) {
+    const isHealthy = r.상태 === '건강';
+    const badgeClass = isHealthy ? 'healthy' : '';
+    const icon = r.상태 === '위험' ? '🚨' : r.상태 === '주의' ? '⚠️' : '✅';
+
+    resultDiv.innerHTML = `
+      <span class="result-badge ${badgeClass}">${icon} ${r.상태}</span>
+      <h2>${r.병명}</h2>
+      <div class="result-section">
+        <h4>🔍 관찰된 증상</h4>
+        <p>${r.증상}</p>
+      </div>
+      <div class="result-section yellow">
+        <h4>💡 원인</h4>
+        <p>${r.원인}</p>
+      </div>
+      <div class="result-section green">
+        <h4>🌱 대처법</h4>
+        <p>${r.대처법}</p>
+      </div>
+      <button id="retry-btn">🔄 다른 사진 진단하기</button>
+    `;
+
+    resultDiv.style.display = 'block';
+    document.getElementById('retry-btn').addEventListener('click', resetUI);
+  }
+
+  function showError(msg) {
+    resultDiv.innerHTML = `
+      <div class="error-box">
+        ❌ 오류가 발생했어요<br><br>
+        ${msg}<br><br>
+        (Netlify Functions 설정/배포 상태를 확인해보세요)
+      </div>
+    `;
+    resultDiv.style.display = 'block';
+  }
+</script>
+</body>
+</html>
